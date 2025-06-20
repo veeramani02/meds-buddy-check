@@ -1,28 +1,41 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Image, Camera, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/SupabaseClient";
+import { useUser } from "@supabase/auth-helpers-react";
+import { toast } from "sonner";
 
 interface MedicationTrackerProps {
   date: string;
   isTaken: boolean;
-  onMarkTaken: (date: string, imageFile?: File) => void;
+  onMarkTaken: (date: string, imageFile?: File, medicationId?: string) => void;
   isToday: boolean;
+  medications: {
+    id: string;
+    name: string;
+    dosage?: string;
+    frequency?: string;
+  }[];
 }
 
-const MedicationTracker = ({ date, isTaken, onMarkTaken, isToday }: MedicationTrackerProps) => {
+const MedicationTracker = ({
+  date,
+  isTaken,
+  onMarkTaken,
+  isToday,
+  medications,
+}: MedicationTrackerProps) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedMedicationId, setSelectedMedicationId] = useState<string | undefined>();
 
-  const dailyMedication = {
-    name: "Daily Medication Set",
-    time: "8:00 AM",
-    description: "Complete set of daily tablets"
-  };
+  const user = useUser();
+  const queryClient = useQueryClient();
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -36,11 +49,69 @@ const MedicationTracker = ({ date, isTaken, onMarkTaken, isToday }: MedicationTr
     }
   };
 
-  const handleMarkTaken = () => {
-    onMarkTaken(date, selectedImage || undefined);
-    setSelectedImage(null);
-    setImagePreview(null);
-  };
+  const { mutate: markAsTaken, isPending } = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) throw new Error("User not authenticated");
+      if (!selectedMedicationId) throw new Error("No medication selected");
+
+      const now = new Date();
+      const todayDate = now.toISOString().split("T")[0];
+      const currentTime = now.toTimeString().split(" ")[0];
+let photo_url = null;
+
+if (selectedImage) {
+  const ext = selectedImage.name.split(".").pop();
+  const filePath = `${user.id}/${selectedMedicationId}_${Date.now()}.${ext}`;
+
+  console.log("📤 Uploading image...");
+  console.log("Selected Image:", selectedImage);
+  console.log("File Path:", filePath);
+
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from("medication-proofs")
+    .upload(filePath, selectedImage, {
+      contentType: selectedImage.type,
+      upsert: false,
+    });
+
+  if (uploadError) {
+    console.error("❌ Upload Error:", uploadError);
+    throw new Error("Image upload failed");
+  }
+
+  const { data: urlData } = supabase.storage
+    .from("medication-proofs")
+    .getPublicUrl(filePath);
+
+  photo_url = urlData?.publicUrl ?? null;
+}
+
+
+      
+      //  Insert log into medication_logs with photo_url
+      const { error } = await supabase.from("medication_logs").insert([
+        {
+          user_id: user.id,
+          medication_id: selectedMedicationId,
+          date_taken: todayDate,
+          time_taken: currentTime,
+          taken: true,
+          photo_url,
+        },
+      ]);
+
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["medication_logs"] });
+      toast.success("Marked as taken!");
+      setSelectedImage(null);
+      setImagePreview(null);
+    },
+    onError: (error) => {
+      toast.error("Error: " + error.message);
+    },
+  });
 
   if (isTaken) {
     return (
@@ -54,34 +125,38 @@ const MedicationTracker = ({ date, isTaken, onMarkTaken, isToday }: MedicationTr
               Medication Completed!
             </h3>
             <p className="text-green-600">
-              Great job! You've taken your medication for {format(new Date(date), 'MMMM d, yyyy')}.
+              Great job! You've taken your medication for{" "}
+              {format(new Date(date), "MMMM d, yyyy")}.
             </p>
           </div>
         </div>
-        
-        <Card className="border-green-200 bg-green-50/50">
-          <CardContent className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                <Check className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h4 className="font-medium text-green-800">{dailyMedication.name}</h4>
-                <p className="text-sm text-green-600">{dailyMedication.description}</p>
-              </div>
-            </div>
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              <Clock className="w-3 h-3 mr-1" />
-              {dailyMedication.time}
-            </Badge>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Medication Dropdown */}
+      <div>
+        <label htmlFor="medSelect" className="block text-sm font-medium mb-1">
+          Select Medication
+        </label>
+        <select
+          id="medSelect"
+          className="w-full border rounded px-3 py-2"
+          value={selectedMedicationId || ""}
+          onChange={(e) => setSelectedMedicationId(e.target.value)}
+        >
+          <option value="">-- Choose Medication --</option>
+          {medications.map((med) => (
+            <option key={med.id} value={med.id}>
+              {med.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Daily Med Card */}
       <Card className="hover:shadow-md transition-shadow">
         <CardContent className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
@@ -89,18 +164,20 @@ const MedicationTracker = ({ date, isTaken, onMarkTaken, isToday }: MedicationTr
               <span className="text-blue-600 font-medium">1</span>
             </div>
             <div>
-              <h4 className="font-medium">{dailyMedication.name}</h4>
-              <p className="text-sm text-muted-foreground">{dailyMedication.description}</p>
+              <h4 className="font-medium">Daily Medication</h4>
+              <p className="text-sm text-muted-foreground">
+                Complete set of daily tablets
+              </p>
             </div>
           </div>
           <Badge variant="outline">
             <Clock className="w-3 h-3 mr-1" />
-            {dailyMedication.time}
+            8:00 AM
           </Badge>
         </CardContent>
       </Card>
 
-      {/* Image Upload Section */}
+      {/* Optional Proof Upload */}
       <Card className="border-dashed border-2 border-border/50">
         <CardContent className="p-6">
           <div className="text-center">
@@ -109,7 +186,7 @@ const MedicationTracker = ({ date, isTaken, onMarkTaken, isToday }: MedicationTr
             <p className="text-sm text-muted-foreground mb-4">
               Take a photo of your medication or pill organizer as confirmation
             </p>
-            
+
             <input
               type="file"
               accept="image/*"
@@ -117,7 +194,7 @@ const MedicationTracker = ({ date, isTaken, onMarkTaken, isToday }: MedicationTr
               ref={fileInputRef}
               className="hidden"
             />
-            
+
             <Button
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
@@ -126,7 +203,7 @@ const MedicationTracker = ({ date, isTaken, onMarkTaken, isToday }: MedicationTr
               <Camera className="w-4 h-4 mr-2" />
               {selectedImage ? "Change Photo" : "Take Photo"}
             </Button>
-            
+
             {imagePreview && (
               <div className="mt-4">
                 <img
@@ -145,19 +222,13 @@ const MedicationTracker = ({ date, isTaken, onMarkTaken, isToday }: MedicationTr
 
       {/* Mark as Taken Button */}
       <Button
-        onClick={handleMarkTaken}
+        onClick={() => markAsTaken()}
         className="w-full py-4 text-lg bg-green-600 hover:bg-green-700 text-white"
-        disabled={!isToday}
+        disabled={!isToday || isPending || !selectedMedicationId}
       >
         <Check className="w-5 h-5 mr-2" />
         {isToday ? "Mark as Taken" : "Cannot mark future dates"}
       </Button>
-
-      {!isToday && (
-        <p className="text-center text-sm text-muted-foreground">
-          You can only mark today's medication as taken
-        </p>
-      )}
     </div>
   );
 };
