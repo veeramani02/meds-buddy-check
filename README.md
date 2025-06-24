@@ -1,77 +1,78 @@
-# MediCare App - 4-6 Hour Assessment
+🌐 Live Demo
+👉 Visit https://meds-buddy-check.netlify.app/
 
-## Live Demo (UI only): https://meds-buddy-check.lovable.app/
+# 💊 Meds Buddy Check
 
-## Current State of the codebase
+A Medication Management App for patients and caretakers to track daily medications, log adherence, and improve health routines — built with **React + TypeScript + Supabase**.
 
-This is a React medication management app with dual user roles (patients/caretakers). Currently features:
+---
 
-- Role-based dashboard system for each user account with runtime switching (for simplcity)
+## 🚀 Features
 
-- UI for medication tracking with calendar visualization
+### 👤 For Patients
+- ✅ View today’s medication schedule
+- ✅ Mark medications as "Taken" with optional photo upload
+- ✅ Track adherence and streak
+- ✅ Add/Edit/Delete medications
+- ✅ Visual calendar with taken/missed history
+- ✅ See Monthly Progress and Streak
 
-- Mock data for streaks, adherence rates, and medication logs
+### 🧑‍⚕️ For Caretakers
+- 👀 Monitor patient medication logs in real-time
+- 📊 View adherence percentage and missed doses
+- 🔔 Configure email reminders & missed alerts
+- 📆 Visual calendar to track patient medication history
 
-- Photo upload interface for medication proof
+---
 
-- Notification settings UI (non-functional)
+## 🛠 Tech Stack
 
-- All data is stored in local state (no persistence)
+- **Frontend**: React, TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Auth, Storage)
+- **State Management**: React Query
+- **Auth**: Supabase Auth (email/password)
+- **Image Upload**: Supabase Storage
+- **Calendar & Date Utils**: `date-fns`
+
+---
+
+## 🔧 Installation
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/your-username/meds-buddy-check.git
+cd meds-buddy-check
+
+# 2. Install dependencies
+npm install
+
+# 3. Setup environment
+cp .env.example .env
+# Add your Supabase credentials to the .env file
+
+# 4. Start development server
+npm run dev
 
 
-## Core Implementation Tasks
+📁 Folder Structure
+📁 src
+├── 📁 components
+│ ├── 📁 ui # Reusable UI elements
+│ └── 📁 Medication # AddMedicationForm, MedicationList
+├── 📁 hooks # React Query hooks (e.g., useMarkMedicationTaken)
+├── 📁 pages
+│ ├── 🧾 PatientDashboard.tsx
+│ └── 🧾 CaretakerDashboard.tsx
+├── 🧾 SupabaseClient.ts # Supabase config
+```
+----
 
-### Phase 1 (Required - 4 hours):
-- Supabase authentication setup
-- Basic CRUD for adding medications
-- Basic CRUD for marking medication taken for the day
-- Connect one dashboard to real data
+## 🛡️ Security
+Sensitive keys are stored in .env
+JWT and user data are securely managed with Supabase Auth
 
-### Phase 2 (Optional - 2 hours):
-- Caretaker-patient real time updates
-- Basic adherence tracking
+----
 
-### Phase 3 (Bonus):
-- File uploads
-
-**Provided:**
-- UI components and styles
-
-## Required Features:
-1. User login/signup with Supabase Auth
-2. Add medications (name, dosage, frequency)
-3. View medication list
-4. Mark medication as taken today
-5. Simple adherence percentage display
-
-## Technical Requirements:
-- Use provided React + TypeScript template
-- Integrate Supabase for auth and database
-- Use React Query for data fetching
-- Implement error handling
-- Clean, readable code
-
-## Other Requirements:
-- Use Git with meaningful commits
-- Implement proper form validation
-- Handle loading and error states consistently
-- Write at least 2-3 meaningful tests using vitest
-- Include a README with setup instructions
-
-## Technical Challenges:
-
-**Include:**
-- Optimistic updates using react query
-- Proper TypeScript generics usage
-
-## Deployment Bonus:
-Deploy to Vercel/Netlify
-
-## We will evaluate:
-- Code organization and architecture decisions
-- Error handling and edge cases
-- TypeScript usage (proper typing, no `any`)
-- Component composition and reusability
-- State management approach
-- Performance considerations (unnecessary re-renders)
-- Security awareness (input sanitization)
+## 📫 Contact
+Made by @veeramani
+📧 veeramani.r326@gmail.com
