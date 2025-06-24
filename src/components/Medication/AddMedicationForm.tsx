@@ -52,7 +52,8 @@ const AddMedicationForm = () => {
   return (
     
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-md">
-      <h1>Add Medication</h1>
+      <h1 className="text-xl font-semibold mb-2">Add Medication</h1>
+      
       <div>
         <Label htmlFor="name">Medication Name</Label>
         <Input id="name" {...register("name", { required: true })} />
